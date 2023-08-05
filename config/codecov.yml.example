@@ -1,0 +1,70 @@
+setup:
+  # Replace with the http location of your Codecov, equivalent to CODECOV_PUBLIC_HOST
+  # https://docs.codecov.io/docs/configuration#section-codecov-url
+  codecov_url: http://localhost:8080
+  # codecov_api_url: <codecov-url> # this defaults to <codecov-url> and is designed to work out of the box like this
+  # api_allowed_hosts: [] # this defaults to <codecov-url> and is designed to work out of the box like this
+  # Replace with your Codecov Enterprise License key. This is required for the containers to function.
+  # https://docs.codecov.io/docs/configuration#section-enterprise-license
+  enterprise_license: "F5O0Fu5ASFTPtWXM51BK8YQlq7IM2s+8TBGULrf9Um7wHjfPwI+Z3E4PfF/dPs6Uc5A+MLti+2etHq5dnFEfZgoiIVCLZ8x+0BVmUSWwPS42vJXnf1veY9Bglang4mDIhmfWfp5l6AT6cxmAVFpGrwobiK6OcN9pjWx4iWabazmsOiF9LM++v0WtuHNvhgzRcKmnJPgqahEB7qqF6KQ1hg=="
+  # https://docs.codecov.com/docs/configuration#instance-wide-admins
+  admins:
+    - service: github
+      username: "<your-user>"
+  # Replace with a random string
+  # https://docs.codecov.io/docs/configuration#section-cookie-secret
+  http:
+    cookie_secret: "<your-cookie-secret>"
+    # Uncomment if using HTTPS
+    # force_https: yes
+  timeseries:
+    enabled: true
+
+# GitHub
+github:
+  client_id: "<client-id>"
+  client_secret: "<client-secret>"
+  global_upload_token: "<upload-token>"
+
+# GitHub Enterprise
+# github_enterprise:
+#   url: "https://github-enterprise-hostname.com"
+#   api_url: "https://github-enterprise-hostname.com/api/v3"
+#   client_id: "<client-id>"
+#   client_secret: "<client-secret>"
+
+# BitBucket
+# bitbucket:
+#   client_id: "<client-id>"
+#   client_secret: "<client-secret>"
+
+# BitBucket Enterprise
+# bitbucket_server:
+#   url: "<BBS>"
+#   client_id: "Consumer Key from above"
+
+# GitLab / Gitlab Enterprise
+# gitlab_enterprise:
+#   url: "https://enterprise-hostname.com"
+#   client_id: "Application Id"
+#   client_secret: "Secret"
+
+services:
+  redis_url: "redis://redis:6379"
+  database_url: "postgres://postgres:testpassword@postgres:5432/postgres"
+  timeseries_database_url: "postgres://postgres:testpassword@timescale:5432/postgres"
+  minio:
+    host: minio
+    port: 9000
+    # If using external storage. Comment above and uncomment below
+    # host: s3.amazonaws.com or storage.googleapis.com if using GCS
+    # bucket: <bucket-name>
+    # region: <bucket-region>
+    # verify_ssl: true
+    # port: 443
+    # access_key_id: <aws-iam-access-key> # or <gcs-hmac-key> if using GCS
+    # secret_access_key: <aws-iam-secret> # or <gcs-hmac-secret> if using GCS
+    # iam_auth: <boolean, default false> # set to true in AWS to attempt to authenticate via Instance role
+  # Uncomment if you want to monitor your Codecov instance with Sentry
+  # sentry:
+  #   server_dsn: https://e15a77ae50f9454c8255dee12e764186@sentry.io/1260170

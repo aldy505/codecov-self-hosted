@@ -2,12 +2,12 @@ version: "3"
 
 services:
   gateway:
-    image: codecov/enterprise-gateway:latest-stable #note: this is for setup purposes only, be sure to pin to the latest release from our changelog: https://docs.codecov.io/changelog
+    image: "${CODECOV_GATEWAY_IMAGE}"
     volumes:
       - ./config:/config
       #- ${CODECOV_SSL_CERT-/cert/codecov.crt}:/etc/codecov/ssl/certs/cert.crt:ro # uncomment if using ssl
     ports:
-      - "${CODECOV_PORT-8080}:8080"
+      - "${CODECOV_EXPOSED_GATEWAY:-127.0.0.1:8080}:8080"
       #- "${CODECOV_SSL_PORT-8443}:8443" # uncomment if using ssl
     environment:
       - CODECOV_GATEWAY_MINIO_ENABLED=true
@@ -19,36 +19,39 @@ services:
       - frontend
 
   frontend:
-    image: codecov/enterprise-frontend:latest-stable #note: this is for setup purposes only, be sure to pin to the latest release from our changelog: https://docs.codecov.io/changelog
+    image: "${CODECOV_FRONTEND_IMAGE}"
     environment:
-      - CODECOV_BASE_HOST=localhost:8080
-      - CODECOV_API_HOST=localhost:8080
-      - CODECOV_IA_HOST=localhost:8080
+      - CODECOV_BASE_HOST=${CODECOV_PUBLIC_HOST}
+      - CODECOV_API_HOST=${CODECOV_PUBLIC_HOST}
+      - CODECOV_IA_HOST=${CODECOV_PUBLIC_HOST}
       - CODECOV_SCHEME=http
     volumes:
       - ./config:/config
-    ports:
-      - "8080"
     networks:
       - codecov
 
   api:
-    image: codecov/enterprise-api:latest-stable #note: this is for setup purposes only, be sure to pin to the latest release from our changelog: https://docs.codecov.io/changelog
-#    build: # uncomment if on a mac
-#      dockerfile: ./m1-build-fix/Dockerfile
-#      context: .
+    image: "${CODECOV_API_IMAGE}"
+    # build: # uncomment if on a mac
+    #   dockerfile: ./m1-build-fix/Dockerfile
+    #   context: .
+    command: "/home/api run"
     volumes:
       - ./config:/config
     networks:
       - codecov
     depends_on:
-      - minio
-      - timescale
-      - postgres
-      - redis
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      timescale:
+        condition: service_healthy
 
   worker:
-    image: codecov/enterprise-worker:latest-stable #note: this is for setup purposes only, be sure to pin to the latest release from our changelog: https://docs.codecov.io/changelog
+    image: "${CODECOV_WORKER_IMAGE}"
     command: worker
     volumes:
       - ./config:/config
@@ -56,10 +59,14 @@ services:
     networks:
       - codecov
     depends_on:
-      - minio
-      - redis
-      - postgres
-      - timescale
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      timescale:
+        condition: service_healthy
 
   redis:
     image: redis:6-alpine
@@ -67,6 +74,13 @@ services:
       - redis-volume:/data
     networks:
       - codecov
+    restart: unless-stopped
+    healthcheck:
+      test: redis-cli ping | grep PONG
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   postgres:
     image: postgres:14-alpine
@@ -76,8 +90,13 @@ services:
       - POSTGRES_DB=postgres
     volumes:
       - postgres-volume:/var/lib/postgresql/data
-    ports:
-      - "9432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: "pg_isready -U postgres -d postgres"
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
     networks:
       - codecov
 
@@ -89,16 +108,19 @@ services:
       - POSTGRES_DB=postgres
     volumes:
       - timescale-volume:/var/lib/postgresql/data
-    ports:
-      - "8432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: "pg_isready -U postgres -d postgres"
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
     networks:
       - codecov
 
   minio:
     image: minio/minio:RELEASE.2020-04-15T00-39-01Z
     command: server /export
-    ports:
-      - "${CODECOV_MINIO_PORT-9000}:9000"
     environment:
       - MINIO_ACCESS_KEY=codecov-default-key
       - MINIO_SECRET_KEY=codecov-default-secret
@@ -106,6 +128,13 @@ services:
       - archive-volume:/export
     networks:
       - codecov
+    restart: unless-stopped
+    healthcheck:
+      test: "curl -f http://localhost:9000/minio/health/live"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
 volumes:
   postgres-volume:

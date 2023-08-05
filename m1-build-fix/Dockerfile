@@ -1,4 +1,5 @@
-FROM --platform=linux/amd64 codecov/enterprise-api:latest-stable
+ARG CODECOV_API_IMAGE
+FROM --platform=linux/amd64 ${CODECOV_API_IMAGE}
 
 USER root
 RUN apk update && apk add openssl postgresql libgcc libstdc++ ncurses-libs
